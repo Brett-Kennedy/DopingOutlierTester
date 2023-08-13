@@ -20,6 +20,7 @@ class DopingOutliersTest:
                   ):
 
         """
+        Transform a given dataframe into a modified (doped) dataframe.
 
         :param df: dataframe
             The original dataframe. This dataframe itself will be unmodified, but another, modified copy of the
@@ -29,7 +30,9 @@ class DopingOutliersTest:
         :param min_cols_per_modification: int
             Each modified row will have at least min_cols_per_modification values modified.
         :param max_cols_per_modification: int
-            Each modified row will have at most max_cols_per_modification values modified.
+            Each modified row will have at most max_cols_per_modification values modified. If -1 is passed,
+            max_cols_per_modification will be set to the number of columns, allowing potentially all columns to
+            be modified for some row, though in practice, much fewer will be modified.
         :param allow_new_categorical_values: bool
             If True, categorical columns that are modified will in some cases be given new values unique to the column.
             If False, categorical columns that are modified will be given new values that already existed elsewhere
@@ -42,6 +45,7 @@ class DopingOutliersTest:
             May be set to ensure consistent results. If set to -1, no seed will be used.
         :param verbose: bool
             If True, some messages will be displayed to provide an indication of the progress of the detector.
+
         :return: dataframe
             The returned dataframe will be almost identical to the original dataframe, with a small number of rows
             will some modified values, and an additional column 'OUTLIER SCORE', which estimates how anomalous the
@@ -78,19 +82,25 @@ class DopingOutliersTest:
         if max_cols_per_modification > num_cols:
             print("max_cols_per_modification must be at most the number of columns in the dataframe")
             return
+        if min_cols_per_modification > max_cols_per_modification:
+            print("min_cols_per_modification must be less than max_cols_per_modification")
+            return
 
-        # Initialize outlier scores. Most rows will have score 0. Those that are modified will have a score
+        # Initialize the outlier scores. Most rows will have score 0. Those that are modified will have a non-zero score
         # representing the number of values that changed and whether they changed to an previously unseen value or not.
         outlier_scores = [0] * num_rows
 
         # Pick the set of rows to modify
         modified_rows = np.random.choice(list(range(num_rows)), num_rows_to_modify)
 
-        # Loop through each row that's modified
+        # Variable used to generate unique string values
         new_vals_counter = 1
+
+        # Loop through each row that's modified
         for row_count, row_idx in enumerate(modified_rows):
 
-            # Determine the columns modified for this row
+            # Determine the columns modified for this row. We select from a laplacian distribution, which tends to
+            # select smaller numbers of features, though can select many.
             num_cols_modified = -1
             while num_cols_modified < min_cols_per_modification or num_cols_modified > max_cols_per_modification:
                 num_cols_modified = int(abs(np.random.laplace(1.0, 10)))
@@ -101,6 +111,7 @@ class DopingOutliersTest:
             # Loop through each column and modify it
             for col_name in modified_cols:
                 col_idx = df.columns.tolist().index(col_name)
+                curr_val = df.loc[row_idx, col_name]
                 new_val = None
                 create_new_value = False
                 if col_types_arr[col_idx] == 'C':
@@ -112,7 +123,8 @@ class DopingOutliersTest:
                         new_val = "NEW VALUE" + str(new_vals_counter)
                         new_vals_counter += 1
                     else:
-                        unique_vals = df[col_name].unique()
+                        unique_vals = df[col_name].unique().tolist()
+                        unique_vals.remove(curr_val)
                         new_val = np.random.choice(unique_vals)
                 else:  # Numeric
                     col_min = self.df[col_name].min()
@@ -124,7 +136,20 @@ class DopingOutliersTest:
                     if create_new_value:
                         new_val = col_max + (np.random.random() * (col_max - col_min))
                     else:
-                        new_val = col_min + (np.random.random() * (col_max - col_min))
+                        curr_val = float(curr_val )
+
+                        # Create a value on the other side of the median than the current value
+                        col_median = self.df[col_name].astype(float).median()
+                        if curr_val < col_median:
+                            new_val = col_median + (np.random.random() * (col_max - col_median))
+                        else:
+                            new_val = col_min + (np.random.random() * (col_median - col_min))
+
+                        # Handle cases where the min equals the median or the max equals the median. If the min equals
+                        # the max, then all values are equal and it does not make sense to generate a new value unless
+                        # create_new_value is set.
+                        if new_val == curr_val:
+                            new_val = col_min + (np.random.random() * (col_max - col_min))
 
                 outlier_scores[row_idx] += 2 if create_new_value else 1
                 self.df.loc[row_idx, col_name] = new_val
