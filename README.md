@@ -2,7 +2,16 @@
 Tool to modify a given dataset with known anomalies in order to test outlier detectors
 
 ## Motivation
-This is a simple tool that can provide one method to test outlier detectors. Given a dataset, in the form of a pandas dataframe, the tool randomly modifies a small set of values within the dataframe. In most cases, this will replace a common value (by virtue of the cells being selected randomly), with another value, where the new value will tend to be less common for the column. The new value may be either an existing value or a new value for the column. Where the new value is a previously-existing value, it may, in some cases, be a relatively common value, but even where the original value is replaced with another common value, so long as the value is different (in the case of categorical columns) or significantly different (in the case of numeric columns), the new value will typically form unusual combinations with the other features in the dataset, where there are correlations or some relations among the features. The tool ensures the updated values are different.
+It is difficult to estimate how well different outlier detectors perform on any given type of data given the lack of ground truth. A number of techniques may be used including:
+
+- Taking datasets normally used for classification, where there is one clear minority class, and taking this class to be the outliers. This method has a number of flaws, including the issue that the function mapping the feature values to the target column may use only a small number of features, and may use these in a complex way, while an outlier detector treats each feature equally. 
+- Agreement with other outlier detectors
+- Manual inspection. This can work in some cases, but is error-prone and intractable for large datasets.
+- Testing with synthetic data. Here data may be generated having known distributions, with known exceptions to these distributions. This can work well with low dimensionalities, but synthetic data may inadvertently contain any number of unknown anomalies, as it is not feasible to specify the joint distributions for every subset of columns. 
+
+These techniques can be useful, though do have their limitations. 
+
+This is a simple tool that can provide another method to test outlier detectors: starting with a real dataset, a small number of random modifications are made, keeping track of the modified rows. Given a dataset, in the form of a pandas dataframe, the tool randomly modifies a small set of values within the dataframe. In most cases, this will replace a common value (by virtue of the cells being selected randomly), with another value, where the new value will tend to be less common for the column. The new value may be either an existing value or a new value for the column. Where the new value is a previously-existing value, it may, in some cases, be a relatively common value, but even where the original value is replaced with another common value, so long as the value is different (in the case of categorical columns) or significantly different (in the case of numeric columns), the new value will typically form unusual combinations with the other features in the dataset, where there are correlations or some relations among the features. The tool ensures the updated values are different.
 
 The tool does not attempt to quantify how unusual the new values are, as this presumes some objective measure of the outlierness of any given row, which is not possible, and it is the role of outlier detectors to estimate this. It does, however, consider the number of cells modified, and distinguishes between cases where the new value did exist previously in the column and where it is completely novel for the column.
 
@@ -77,7 +86,7 @@ All unmodified rows will have a zero in this array.
 
 **Simple Example Notebook**
 
-This [example notebook](https://github.com/Brett-Kennedy/Doping_Outlier_Tester/blob/main/examples/Simple%20Example.ipynb) provides an example using IsolationForest (IF), which is known to be a strong outlier detector. 
+The [example notebook](https://github.com/Brett-Kennedy/Doping_Outlier_Tester/blob/main/examples/Simple%20Example.ipynb) provides an example using IsolationForest (IF), which is known to be a strong outlier detector. 
 
 The Doping Outliers Test tool cannot estimate how unusual any row is, only how unusual it likely is compared to its state before the doping process. As such, to evaluate how well IF does in identifying the modified rows, we get the IF score of each row both before and after the doping process and examine the difference in IF scores. The gains in outlier scores for the modified rows should be higher than for the unmodified rows, which is, in fact, the case. The IF scores (once cleaned) correlate very closely with the estimated scores produced by the Doping Outlier Tester tool.
 
@@ -86,7 +95,7 @@ are zero and non-zero in the same rows. This is not strictly true for all datase
 
 **Test Doping OpenML Notebook**
 
-This [example notebook](https://github.com/Brett-Kennedy/DopingOutlierTester/blob/main/examples/Test_Doping_OpenML_IF.ipynb) provides a more thorough test of the tool, ensuring that, given a dataset, both IsolationForest (IF) and Local Outlier Factor (LOF) are able to detect modifications in a dataset reliably. This was tested on a large number of datasets from OpenML selected randomly. 
+The [OpenML test notebook](https://github.com/Brett-Kennedy/DopingOutlierTester/blob/main/examples/Test_Doping_OpenML_IF.ipynb) provides a more thorough test of the tool, ensuring that, given a dataset, both IsolationForest (IF) and Local Outlier Factor (LOF) are able to detect modifications in a dataset reliably. This was tested on a large number of datasets from OpenML selected randomly. 
 
 In this test, each dataset was modified by DopingOutliersTest using default parameters, which modifies ten rows. With each dataset, we get the outlier scores on both the original and modified forms of the dataset using both IF and LOF. We then check the gains in scores. We evaluate the detectors in two key ways.
 
