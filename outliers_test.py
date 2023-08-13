@@ -18,7 +18,6 @@ class DopingOutliersTest:
                   random_state=-1,
                   verbose=False
                   ):
-
         """
         Transform a given dataframe into a modified (doped) dataframe.
 
@@ -48,8 +47,8 @@ class DopingOutliersTest:
 
         :return: dataframe
             The returned dataframe will be almost identical to the original dataframe, with a small number of rows
-            will some modified values, and an additional column 'OUTLIER SCORE', which estimates how anomalous the
-            modified rows are relative to their original state. All unmodified rows will have a zero in this column.
+            with some modified values. This also returns an array, which estimates how anomalous the modified rows are
+            relative to their original state. All unmodified rows will have a zero in this array.
         """
 
         if random_state >= 0:
@@ -124,22 +123,24 @@ class DopingOutliersTest:
                         new_vals_counter += 1
                     else:
                         unique_vals = df[col_name].unique().tolist()
-                        unique_vals.remove(curr_val)
+                        if len(unique_vals) > 1:
+                            unique_vals.remove(curr_val)
                         new_val = np.random.choice(unique_vals)
                 else:  # Numeric
-                    col_min = self.df[col_name].min()
-                    col_max = self.df[col_name].max()
+                    curr_val = float(curr_val)
+                    col_min = self.df[col_name].astype(float).min()
+                    col_max = self.df[col_name].astype(float).max()
+                    col_median = self.df[col_name].astype(float).median()
+
                     if allow_new_numeric_values:
                         p = np.random.random()
                         if p < 0.5:
                             create_new_value = True
+
                     if create_new_value:
                         new_val = col_max + (np.random.random() * (col_max - col_min))
                     else:
-                        curr_val = float(curr_val )
-
                         # Create a value on the other side of the median than the current value
-                        col_median = self.df[col_name].astype(float).median()
                         if curr_val < col_median:
                             new_val = col_median + (np.random.random() * (col_max - col_median))
                         else:
@@ -154,10 +155,7 @@ class DopingOutliersTest:
                 outlier_scores[row_idx] += 2 if create_new_value else 1
                 self.df.loc[row_idx, col_name] = new_val
 
-        # Add the approximate outlier scores to each row
-        self.df['OUTLIER SCORE'] = outlier_scores
-
-        return self.df
+        return self.df, outlier_scores
 
     def __get_col_types_arr(self):
         """
