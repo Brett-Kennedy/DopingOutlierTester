@@ -127,6 +127,8 @@ class DopingOutliersTest:
                             unique_vals.remove(curr_val)
                         new_val = np.random.choice(unique_vals)
                 else:  # Numeric
+                    if self.df[col_name].isna().sum() == len(self.df):
+                        continue
                     curr_val = float(curr_val)
                     col_min = self.df[col_name].astype(float).min()
                     col_max = self.df[col_name].astype(float).max()
