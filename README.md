@@ -112,6 +112,6 @@ Average LOF Jaccard Similarity to top 10: 0.64
 Average IF Jaccard Similarity using IQR:  0.56
 Average LOF Jaccard Similarity using IQR: 0.32
 ```
-Although explicitily using the top ten scores performs better, all show a very high degree of similarity between the top scores of the detectors and the truly modified rows. Even 0.32 is a quite decent Jaccard similarity, and this can be improved with other methods to determine a cutoff for a binary outlier flag using LOF.
+Although explicitily using the top ten scores performs better, all show a very high degree of similarity between the top scores of the detectors and the truly modified rows. Even 0.32 is a quite decent Jaccard similarity, and this can be improved with other methods to determine a cutoff for a binary outlier flag using LOF. Further, we do not wish for perfect accuracy, as this indicates the doping process created outliers that were too obvious. However, the doping process is configurable, and can be made more or less difficult. 
 
 We may conclude that the DopingOutliersTest is able to modify datasets in a manner which outlier detectors can generally identify. However, each outlier detector uses its own algorithm, which allows each to identify different types of outliers. Many of the changes can be detected better by IF, with others better by LOF, but on average both performed quite well. 
