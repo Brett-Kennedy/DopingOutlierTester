@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import random
+import scipy.stats
 from pandas.api.types import is_numeric_dtype
 
 
@@ -90,7 +91,7 @@ class DopingOutliersTest:
         outlier_scores = [0] * num_rows
 
         # Pick the set of rows to modify
-        modified_rows = np.random.choice(list(range(num_rows)), num_rows_to_modify)
+        modified_rows = np.random.choice(list(range(num_rows)), num_rows_to_modify, replace=False)
 
         # Variable used to generate unique string values
         new_vals_counter = 1
@@ -103,9 +104,10 @@ class DopingOutliersTest:
             num_cols_modified = -1
             while num_cols_modified < min_cols_per_modification or num_cols_modified > max_cols_per_modification:
                 num_cols_modified = int(abs(np.random.laplace(1.0, 10)))
-            modified_cols = np.random.choice(df.columns, num_cols_modified)
+            modified_cols = np.random.choice(df.columns, num_cols_modified, replace=False)
             if verbose:
-                print(f"Modifying row {row_count} of {num_rows_to_modify}. Modifying {num_cols_modified} columns")
+                print((f"Modifying row {row_count} (Row {row_idx}) of {num_rows_to_modify}. Modifying "
+                       f"{num_cols_modified} columns"))
 
             # Loop through each column and modify it
             for col_name in modified_cols:
@@ -126,6 +128,10 @@ class DopingOutliersTest:
                         if len(unique_vals) > 1:
                             unique_vals.remove(curr_val)
                         new_val = np.random.choice(unique_vals)
+
+                    if verbose:
+                        print(f" Column: {col_name} -- Previous value: {curr_val} -- New value: {new_val}")
+
                 else:  # Numeric
                     if self.df[col_name].isna().sum() == len(self.df):
                         continue
@@ -153,6 +159,11 @@ class DopingOutliersTest:
                         # create_new_value is set.
                         if new_val == curr_val:
                             new_val = col_min + (np.random.random() * (col_max - col_min))
+                    if verbose:
+                        print((f" Column: {col_name} -- Previous value: {curr_val} "
+                               f"({scipy.stats.percentileofscore(self.df[col_name], curr_val):.2f} percentile) "
+                               f"-- New value: {new_val} "
+                               f"({scipy.stats.percentileofscore(self.df[col_name], new_val):.2f} percentile)"))
 
                 outlier_scores[row_idx] += 2 if create_new_value else 1
                 self.df.loc[row_idx, col_name] = new_val
