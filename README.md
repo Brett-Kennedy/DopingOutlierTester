@@ -114,4 +114,8 @@ Average LOF Jaccard Similarity using IQR: 0.27
 ```
 Although explicitily using the top ten scores performs better, all show a very high degree of similarity between the top scores of the detectors and the truly modified rows. Even 0.27 is a decent Jaccard similarity, and this can be improved with other methods to determine a cutoff for a binary outlier flag using LOF. Further, we do not wish for perfect accuracy, as this indicates the doping process created outliers that were too obvious. However, the doping process is configurable, and can be made more or less difficult. 
 
+As as example, we show the results for one dataset, included in the notebook, solar-flares. This shows the ten rows modified by the doping tool, as well as five other rows. For each it shows the IsolationForest scores on the original and modified data, and the score from the doping tool, as well as binary columns indicating if there was an increase in IF score and if the row was, in fact, modified. The agreement is strong. 
+
+![table](https://github.com/Brett-Kennedy/DopingOutlierTester/blob/main/images/img1.jpg)
+
 We may conclude that the DopingOutliersTest is able to modify datasets in a manner which outlier detectors can generally identify. However, each outlier detector uses its own algorithm, which allows each to identify different types of outliers. Many of the changes can be detected better by IF, with others better by LOF, but on average both performed quite well. 
